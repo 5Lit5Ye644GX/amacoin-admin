@@ -178,7 +178,7 @@ func ChoiceAdmin(client *multichain.Client, asset string) error {
 	_, err := fmt.Scanf("%d\n", &res1)
 	switch res1 {
 	case 1: // Create a new address
-		err := CreateAddress(client)
+		err := CreateAddress(client, asset)
 		if err != true {
 			fmt.Printf("Error in CreateAddress")
 			return nil
@@ -212,7 +212,7 @@ func ChoiceAdmin(client *multichain.Client, asset string) error {
 }
 
 //CreateAddress is a function that creates a new address within the wallet and grant them with the basic permissions
-func CreateAddress(client *multichain.Client) bool {
+func CreateAddress(client *multichain.Client, name string) bool {
 	c := exec.Command("clear") // Efface l'écran
 	c.Stdout = os.Stdout
 	c.Run()
@@ -228,6 +228,11 @@ func CreateAddress(client *multichain.Client) bool {
 		fmt.Printf("Grant denied : \n %s \n", erroer)
 	}
 	fmt.Printf("Nouvelle adresse créée avec succès. \n %s \n ======================== \n", resp)
+	_, err = client.IssueMore(resTr[0], name, 10)
+	if err != nil {
+		log.Printf("[ERREUR SUR L'ADRESSE]")
+	}
+
 	return true
 }
 
