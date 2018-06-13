@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"os/exec"
 	"os/user"
@@ -15,6 +16,25 @@ import (
 
 	"github.com/flibustier/multichain-client"
 )
+
+func print(msg string) {
+	runes := []rune(msg)
+	for _, c := range runes {
+		time.Sleep(time.Duration(rand.Intn(20)) * time.Millisecond)
+		fmt.Printf("%c", c)
+	}
+}
+
+func boom() {
+	print(`
+		██████╗ ███████╗██╗   ██╗███████╗    ██╗   ██╗██╗   ██╗██╗  ████████╗
+		██╔══██╗██╔════╝██║   ██║██╔════╝    ██║   ██║██║   ██║██║  ╚══██╔══╝
+		██║  ██║█████╗  ██║   ██║███████╗    ██║   ██║██║   ██║██║     ██║   
+		██║  ██║██╔══╝  ██║   ██║╚════██║    ╚██╗ ██╔╝██║   ██║██║     ██║   
+		██████╔╝███████╗╚██████╔╝███████║     ╚████╔╝ ╚██████╔╝███████╗██║   
+		╚═════╝ ╚══════╝ ╚═════╝ ╚══════╝      ╚═══╝   ╚═════╝ ╚══════╝╚═╝   `)
+	fmt.Println()
+}
 
 func main() {
 
@@ -29,19 +49,17 @@ func main() {
 	}
 	cmd := exec.Command(".\\multichaind.exe", "Amacoin")
 	err31 := cmd.Start()
-	fmt.Printf("Est-ce que ça tourne LOOOOOOOOOOOOOOOOOOOOL \n")
 	if err31 != nil {
 		fmt.Printf("Est-ce que ça tourne ?: %s \n ", err31)
 	}
 	if runtime.GOOS == "windows" {
-		fmt.Println("Hello from Windows")
+		log.Println("[OK] Your OS is [Windows]")
+	} else if runtime.GOOS == "linux" {
+		log.Println("[OK] Your OS is [Linux]")
 	}
 
-	if runtime.GOOS == "linux" {
-		fmt.Println("Hello from linux")
-	} else {
-		fmt.Printf("Hello not from Linux lel \n")
-	}
+	boom()
+
 	duration := time.Duration(3) * time.Second
 	time.Sleep(duration) // little sleep  (3s) before connecting
 	////////////////////////// Démarrage de multichaind.exe Amacoin@IP:Port
@@ -57,14 +75,11 @@ func main() {
 	password := flag.String("password", "DYiL6vb71Y8qfEo9CkYr5wyZ3GqjRxrjzkYyjsA9S1k2", "is a string for the password")
 	flag.Parse()
 
-	fmt.Printf("1!!!!!!!!!!!!! \n")
-
 	logs := GetLogins(*chain)
 	*username = logs[0]
 	*password = logs[1]
 	*port = GetPort(*chain)
 
-	fmt.Printf("2!!!!!!!!!!!!! \n")
 	////////////////////////
 	client := multichain.NewClient(
 		*chain,
@@ -75,18 +90,17 @@ func main() {
 		*host,
 		*port,
 	)
-	fmt.Printf("3!!!!!!!!!!!!! \n")
+
 	///////////////////////////////// Asset Definition ////////////////////////////////
 	RewardName := *chain  // Nom de notre monnaie.
 	InitialReward := 10.0 // Récompense d'entrée.
 	cents := 0.01         // Unité monétaire divisionnaire de l'écu.
-	///////////////////////0////////////////////////////////////////////////////////////
-	fmt.Printf("4!!!!!!!!!!!!! \n")
+	///////////////////////////////////////////////////////////////////////////////////
+
 	obj, err := client.GetAddresses(false) // Get the addresses in our wallet.
 	if err != nil {                        // Impossible to reach our wallet, please ask for lost objects.
 		log.Fatal("[FATAL] Could not get addresses from Multichain", err)
 	}
-	fmt.Printf("5!!!!!!!!!!!!! \n")
 
 	addresses := obj.Result().([]interface{})                                // Different addresses stored on the node
 	address := addresses[0].(string)                                         // The first wallet is the principle one. End of discussion
@@ -105,8 +119,6 @@ func main() {
 	}
 	// End of the initialization of da wallet.
 	log.Printf("[OK] On a bien démarré notre noeud. La bourse est disponible à l'adresse : %s", address)
-
-	fmt.Printf("\n [OK] ========================================== \n \n \n")
 
 	//////////////////////////////////////////////////////////
 	address1 := Identification(client)
@@ -327,7 +339,6 @@ func GetLogins(chain string) []string {
 	path4 := "multichain.conf"
 	var path string
 	if runtime.GOOS == "windows" { //////////////////// PATH DIRECTORY FOR WINDOWS USERS \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-		fmt.Println("Hello from Windows \n")
 		path1 := user.HomeDir + "\\"
 		path2 := "AppData\\Roaming\\Multichain\\"
 		path3 := chain + "\\"
@@ -376,7 +387,6 @@ func GetPort(chain string) int {
 	path4 := "params.dat"
 	var path string
 	if runtime.GOOS == "windows" { //////////////////// PATH DIRECTORY FOR WINDOWS USERS \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-		fmt.Println("Hello from Windows \n")
 		path1 := user.HomeDir + "\\"
 		path2 := "AppData\\Roaming\\Multichain\\"
 		path3 := chain + "\\"
