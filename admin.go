@@ -34,11 +34,11 @@ func main() {
 		fmt.Printf("Est-ce que ça tourne ?: %s \n ", err31)
 	}
 	if runtime.GOOS == "windows" {
-		fmt.Println("Hello from Windows \n")
+		fmt.Println("Hello from Windows")
 	}
 
 	if runtime.GOOS == "linux" {
-		fmt.Println("Hello from linux \n")
+		fmt.Println("Hello from linux")
 	} else {
 		fmt.Printf("Hello not from Linux lel \n")
 	}
@@ -57,11 +57,14 @@ func main() {
 	password := flag.String("password", "DYiL6vb71Y8qfEo9CkYr5wyZ3GqjRxrjzkYyjsA9S1k2", "is a string for the password")
 	flag.Parse()
 
+	fmt.Printf("1!!!!!!!!!!!!! \n")
+
 	logs := GetLogins(*chain)
 	*username = logs[0]
 	*password = logs[1]
 	*port = GetPort(*chain)
 
+	fmt.Printf("2!!!!!!!!!!!!! \n")
 	////////////////////////
 	client := multichain.NewClient(
 		*chain,
@@ -72,16 +75,18 @@ func main() {
 		*host,
 		*port,
 	)
-
+	fmt.Printf("3!!!!!!!!!!!!! \n")
 	///////////////////////////////// Asset Definition ////////////////////////////////
 	RewardName := *chain  // Nom de notre monnaie.
 	InitialReward := 10.0 // Récompense d'entrée.
 	cents := 0.01         // Unité monétaire divisionnaire de l'écu.
-	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////0////////////////////////////////////////////////////////////
+	fmt.Printf("4!!!!!!!!!!!!! \n")
 	obj, err := client.GetAddresses(false) // Get the addresses in our wallet.
 	if err != nil {                        // Impossible to reach our wallet, please ask for lost objects.
 		log.Fatal("[FATAL] Could not get addresses from Multichain", err)
 	}
+	fmt.Printf("5!!!!!!!!!!!!! \n")
 
 	addresses := obj.Result().([]interface{})                                // Different addresses stored on the node
 	address := addresses[0].(string)                                         // The first wallet is the principle one. End of discussion
@@ -150,7 +155,14 @@ func ChoiceAdmin(client *multichain.Client, asset string) error {
 	c.Stdout = os.Stdout
 	c.Run()
 	var res1 int
-	fmt.Printf("=========== MENU ADMIN ========== \n Creer une nouvelle adresse dans le portefeuille 1) \n Crediter une adresse 2) \n Supprimer les permissions d'une adresse 3) \n Sortie 0) \n ============================== \n")
+	fmt.Println("	 /'\\_/`\\                          	")
+	fmt.Println("	/\\      \\     __    ___   __  __  	")
+	fmt.Println("	\\ \\ \\__\\ \\  /'__`\\/' _ `\\/\\ \\/\\ \\ 	")
+	fmt.Println("	 \\ \\ \\_/\\ \\/\\  __//\\ \\/\\ \\ \\ \\_\\ \\	")
+	fmt.Println("	  \\ \\_\\\\ \\_\\ \\____\\ \\_\\ \\_\\ \\____/	")
+	fmt.Println("	   \\/_/ \\/_/\\/____/\\/_/\\/_/\\/___/ ")
+
+	fmt.Printf("\n \n +-----------------------------------------------------+\n | Creer une nouvelle adresse dans le portefeuille 1)  | \n | Crediter une adresse 2)                             | \n | Supprimer les permissions d'une adresse 3)          | \n | Sortie 0)                                           |\n +-----------------------------------------------------+ \n")
 	_, err := fmt.Scanf("%d\n", &res1)
 	switch res1 {
 	case 1: // Create a new address
@@ -216,10 +228,10 @@ func RevokePermissions(client *multichain.Client) bool {
 	var res int64
 
 	tableau := GetGlobalAdresses(client) // Get Addresses
-	fmt.Printf("______________________________\nLes adresses disponibles sont: \n")
+	/*fmt.Printf("______________________________\nLes adresses disponibles sont: \n")
 	for i := range tableau {
 		fmt.Printf("Adresse %d: %s \n", i, tableau[i])
-	}
+	}*/
 	fmt.Printf("============================ \n Quelle adresse créditer? Entrer le numéro correspondant.\n")
 	_, err := fmt.Scanf("%d\n", &res)
 	if err != nil { // SCAN is Not OK
