@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"image/color"
 	"log"
 	"math/rand"
 	"os"
@@ -14,7 +15,9 @@ import (
 	"strconv"
 	"time"
 
+	cool "github.com/fatih/color"
 	"github.com/flibustier/multichain-client"
+	qrcode "github.com/skip2/go-qrcode"
 )
 
 func print(msg string) {
@@ -23,6 +26,16 @@ func print(msg string) {
 		time.Sleep(time.Duration(rand.Intn(20)) * time.Millisecond)
 		fmt.Printf("%c", c)
 	}
+}
+
+func ok(msg string) {
+	cool.New(cool.FgHiGreen).Printf("[OK] ")
+	fmt.Println(msg)
+}
+
+func fail(msg string) {
+	cool.New(cool.FgHiRed).Printf("[ERROR] ")
+	fmt.Println(msg)
 }
 
 func boom() {
@@ -34,6 +47,10 @@ func boom() {
 		██████╔╝███████╗╚██████╔╝███████║     ╚████╔╝ ╚██████╔╝███████╗██║   
 		╚═════╝ ╚══════╝ ╚═════╝ ╚══════╝      ╚═══╝   ╚═════╝ ╚══════╝╚═╝   `)
 	fmt.Println()
+	err := qrcode.WriteColorFile("deus vult", qrcode.Medium, 256, color.Black, color.White, "qr.png")
+	if err != nil {
+		fail("Failed to save QR code")
+	}
 }
 
 func main() {
@@ -44,7 +61,7 @@ func main() {
 	}
 
 	if runtime.GOOS == "windows" {
-		log.Println("[OK] Your OS is [Windows]")
+		ok("Your OS is [Windows]")
 
 		path := user.HomeDir + "\\AppData\\Roaming\\Multichain"
 		err = os.Chdir(path)
@@ -58,7 +75,7 @@ func main() {
 		}
 
 	} else if runtime.GOOS == "linux" {
-		log.Println("[OK] Your OS is [Linux]")
+		ok("Your OS is [Linux]")
 	}
 
 	boom()
@@ -110,18 +127,18 @@ func main() {
 	obj, err = client.Issue(true, address, RewardName, InitialReward, cents) // If it's the first time the node is launched, we have to create the asset for reward
 
 	if err != nil { // Asset already existing
-		log.Printf("[OK] Asset %s seems to be already existing\n", RewardName)
+		ok(fmt.Sprintf("Asset %s seems to be already existing\n", RewardName))
 	} else { // Creation of the non existing asset
 		obj, err = client.IssueMore(address, RewardName, 10) // Noob award ?
 		if err != nil {
-			log.Println("[ERREUR SUR L'ADRESSE]")
+			fail("[ERREUR SUR L'ADRESSE]")
 		} else {
 			log.Println("[OK] ON A RAJOUTE L'ARGENT") // Award granted
 		}
 		log.Printf("[OK] Asset %s successfuly created\n", RewardName) // Graphical confirmation of the asset creation's success
 	}
 	// End of the initialization of da wallet.
-	log.Printf("[OK] On a bien démarré notre noeud. La bourse est disponible à l'adresse : %s\n", address)
+	ok(fmt.Sprintf("On a bien démarré notre noeud. La bourse est disponible à l'adresse : %s\n", address))
 
 	//////////////////////////////////////////////////////////
 	address1 := Identification(client)
