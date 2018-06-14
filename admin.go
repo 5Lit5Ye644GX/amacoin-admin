@@ -135,7 +135,7 @@ func main() {
 func Identification(client *multichain.Client) string {
 	var res int
 	tableau := GetLocalAddresses(client)
-	fmt.Printf("\n ============ I D E N T I F I C A T I O N ============= \n")
+	print("\n ============ I D E N T I F I C A T I O N ============= \n")
 	fmt.Printf("Les adresses disponibles sur le noeud sont: \n")
 	for i := range tableau {
 		fmt.Printf("Adresse %d: %s \n", i, tableau[i])
@@ -170,12 +170,12 @@ func ChoiceAdmin(client *multichain.Client, asset string) error {
 	c.Stdout = os.Stdout
 	c.Run()
 	var res1 int
-	fmt.Println("	 /'\\_/`\\                          	")
-	fmt.Println("	/\\      \\     __    ___   __  __  	")
-	fmt.Println("	\\ \\ \\__\\ \\  /'__`\\/' _ `\\/\\ \\/\\ \\ 	")
-	fmt.Println("	 \\ \\ \\_/\\ \\/\\  __//\\ \\/\\ \\ \\ \\_\\ \\	")
-	fmt.Println("	  \\ \\_\\\\ \\_\\ \\____\\ \\_\\ \\_\\ \\____/	")
-	fmt.Println("	   \\/_/ \\/_/\\/____/\\/_/\\/_/\\/___/ ")
+	print("	 /'\\_/`\\                          	\n")
+	print("	/\\      \\     __    ___   __  __  	\n")
+	print("	\\ \\ \\__\\ \\  /'__`\\/' _ `\\/\\ \\/\\ \\ 	\n")
+	print("	 \\ \\ \\_/\\ \\/\\  __//\\ \\/\\ \\ \\ \\_\\ \\	\n")
+	print("	  \\ \\_\\\\ \\_\\ \\____\\ \\_\\ \\_\\ \\____/	\n")
+	print("	   \\/_/ \\/_/\\/____/\\/_/\\/_/\\/___/ \n")
 
 	fmt.Printf("\n \n +-----------------------------------------------------+\n | Creer une nouvelle adresse dans le portefeuille 1)  | \n | Crediter une adresse 2)                             | \n | Supprimer les permissions d'une adresse 3)          | \n | Sortie 0)                                           |\n +-----------------------------------------------------+ \n")
 	_, err := fmt.Scanf("%d\n", &res1)
