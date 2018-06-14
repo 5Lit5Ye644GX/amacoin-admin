@@ -20,6 +20,11 @@ import (
 	qrcode "github.com/skip2/go-qrcode"
 )
 
+const (
+	InitialReward = 10.0 // Récompense d'entrée.
+	cents         = 0.01 // Unité monétaire divisionnaire de l'écu.
+)
+
 func print(msg string) {
 	runes := []rune(msg)
 	for _, c := range runes {
@@ -33,9 +38,19 @@ func ok(msg string) {
 	fmt.Println(msg)
 }
 
+func okf(format string, a ...interface{}) {
+	cool.New(cool.FgHiGreen).Printf("[OK] ")
+	fmt.Printf(format, a)
+}
+
 func fail(msg string) {
 	cool.New(cool.FgHiRed).Printf("[ERROR] ")
 	fmt.Println(msg)
+}
+
+func failf(format string, a ...interface{}) {
+	cool.New(cool.FgHiRed).Printf("[ERROR] ")
+	fmt.Printf(format, a)
 }
 
 func boom() {
@@ -47,11 +62,9 @@ func boom() {
 		██████╔╝███████╗╚██████╔╝███████║     ╚████╔╝ ╚██████╔╝███████╗██║   
 		╚═════╝ ╚══════╝ ╚═════╝ ╚══════╝      ╚═══╝   ╚═════╝ ╚══════╝╚═╝   `)
 	fmt.Println()
-	err := qrcode.WriteColorFile("deus vult", qrcode.Medium, 256, color.Black, color.White, "qr.png")
-	if err != nil {
-		fail("Failed to save QR code")
-	}
 }
+
+var client *multichain.Client
 
 func main() {
 
@@ -101,7 +114,7 @@ func main() {
 	*port = GetPort(*chain)
 
 	///////////////////////// TACTICAL CONNECTION TO THE HOLY BLOCKCHAIN /////////////////////////
-	client := multichain.NewClient(
+	client = multichain.NewClient(
 		*chain,
 		*username,
 		*password,
@@ -112,9 +125,7 @@ func main() {
 	)
 
 	//////////////////////// Asset Definition /////////////////////////
-	RewardName := *chain  // Nom de notre monnaie.
-	InitialReward := 10.0 // Récompense d'entrée.
-	cents := 0.01         // Unité monétaire divisionnaire de l'écu.
+	RewardName := *chain // Nom de notre monnaie.
 	///////////////////////////////////////////////////////////////////
 
 	obj, err := client.GetAddresses(false) // Get the addresses in our wallet.
@@ -127,7 +138,7 @@ func main() {
 	obj, err = client.Issue(true, address, RewardName, InitialReward, cents) // If it's the first time the node is launched, we have to create the asset for reward
 
 	if err != nil { // Asset already existing
-		ok(fmt.Sprintf("Asset %s seems to be already existing\n", RewardName))
+		okf("Asset %s seems to be already existing\n", RewardName)
 	} else { // Creation of the non existing asset
 		obj, err = client.IssueMore(address, RewardName, 10) // Noob award ?
 		if err != nil {
@@ -141,17 +152,20 @@ func main() {
 	ok(fmt.Sprintf("On a bien démarré notre noeud. La bourse est disponible à l'adresse : %s\n", address))
 
 	//////////////////////////////////////////////////////////
-	address1 := Identification(client)
-	erreu := ChoiceAdmin(client, RewardName)
-	fmt.Printf("%s \n %s \n", address1, erreu)
+	Identification()
+	for {
+		ChoiceAdmin(RewardName)
+		cool.HiCyan("Press 'Enter' to continue...")
+		bufio.NewReader(os.Stdin).ReadBytes('\n')
+	}
 }
 
 ///////////////////////// Fonctions d'administration /////////////
 
-//Identification is a function that asks very basically the user to inform the program his office
-func Identification(client *multichain.Client) string {
+// Identification is a function that asks very basically the user to inform the program his office
+func Identification() string {
 	var res int
-	tableau := GetLocalAddresses(client)
+	tableau := GetLocalAddresses()
 	print("\n ============ I D E N T I F I C A T I O N ============= \n")
 	fmt.Printf("Les adresses disponibles sur le noeud sont: \n")
 	for i := range tableau {
@@ -167,8 +181,8 @@ func Identification(client *multichain.Client) string {
 	return res1
 }
 
-//GetLocalAddresses is a function that return a list of the addresses contained in da wallet.
-func GetLocalAddresses(client *multichain.Client) []string {
+// GetLocalAddresses is a function that return a list of the addresses contained in da wallet.
+func GetLocalAddresses() []string {
 	obj, err := client.GetAddresses(false) // Get the addresses in our wallet.
 	if err != nil {                        // Impossible to reach our wallet, please ask for lost objects.
 		log.Fatal("[FATAL] Could not get addresses from Multichain", err)
@@ -182,7 +196,7 @@ func GetLocalAddresses(client *multichain.Client) []string {
 }
 
 // ChoiceAdmin is a function that open the Menu for admin functions.
-func ChoiceAdmin(client *multichain.Client, asset string) error {
+func ChoiceAdmin(asset string) error {
 	c := exec.Command("clear") // Efface l'écran
 	c.Stdout = os.Stdout
 	c.Run()
@@ -194,77 +208,99 @@ func ChoiceAdmin(client *multichain.Client, asset string) error {
 	print("	  \\ \\_\\\\ \\_\\ \\____\\ \\_\\ \\_\\ \\____/	\n")
 	print("	   \\/_/ \\/_/\\/____/\\/_/\\/_/\\/___/ \n")
 
-	fmt.Printf("\n \n +-----------------------------------------------------+\n | Creer une nouvelle adresse dans le portefeuille 1)  | \n | Crediter une adresse 2)                             | \n | Supprimer les permissions d'une adresse 3)          | \n | Sortie 0)                                           |\n +-----------------------------------------------------+ \n")
+	fmt.Printf(`
++-----------------------------------------------------+
+| 1) Générer une nouvelle adresse                     | 
+| 2) Verser un pourboire                              |
+| 3) Supprimer les permissions d'une adresse          | 
+| F) Pay respect                                      |
+| 0) Sortie (Emergency Escape Exit)                   |
++-----------------------------------------------------+ 
+`)
+
 	_, err := fmt.Scanf("%d\n", &res1)
 	switch res1 {
 	case 1: // Create a new address
-		err := CreateAddress(client, asset)
+		err := CreateAddress(asset)
 		if err != true {
-			fmt.Printf("Error in CreateAddress")
-			return nil
+			panic("Error in CreateAddress")
 		}
 	case 2: // Issue asset
-		err := IssueMoney(client, asset)
+		err := IssueMoney(asset)
 		if err != true {
-			fmt.Printf("Error in IssueMoney")
-			return nil
+			panic("Error in IssueMoney")
 		}
 	case 3: // revoke Permission
-		err := RevokePermissions(client)
+		err := RevokePermissions()
 		if err != true {
-			fmt.Printf("Error in IssueMoney")
-			return nil
+			panic("Error in IssueMoney")
 		}
 	case 0: // Exit
-		//fmt.Println("Exiting...")
-		//os.Exit(0)
+		cool.Red("Exiting...")
+		os.Exit(0)
 		return nil
 	default:
 		fmt.Println("Not an option")
 	}
 	//fmt.Printf("J'ai rentré %d, il y a erreur : %s \n", res1, err)
 	if err != nil { // SCAN is Not OK
-		fmt.Printf("Wrong imput, please try again.\n")
+		cool.Red("Wrong imput, please try again.\n")
 		return err
 	}
 
 	return nil
 }
 
-//CreateAddress is a function that creates a new address within the wallet and grant them with the basic permissions
-func CreateAddress(client *multichain.Client, name string) bool {
+// CreateAddress is a function that creates a new address within the wallet and grant them with the basic permissions
+func CreateAddress(name string) bool {
 	c := exec.Command("clear") // Efface l'écran
 	c.Stdout = os.Stdout
 	c.Run()
 	res, err := client.GetNewAddress()
 	if err != nil {
-		fmt.Printf("Impossible de créer la nouvelle adresse. \n %s \n", err)
+		failf("Impossible de créer la nouvelle adresse.\n %s \n", err)
 		return false
 	}
-	permissions := []string{"connect", "send", "receive", "mine"}
-	resTr := []string{res.Result().(string)}
-	resp, erroer := client.Grant(resTr, permissions)
-	if erroer != nil {
-		fmt.Printf("Grant denied : \n %s \n", erroer)
-	}
-	fmt.Printf("Nouvelle adresse créée avec succès. \n %s \n ======================== \n", resp)
-	_, err = client.IssueMore(resTr[0], name, 10)
+	addr := []string{res.Result().(string)}
+
+	ok("Nouvelle adresse créée avec succès:")
+	cool.Magenta(addr[0])
+
+	permissions := []string{"receive"}
+	res, err = client.Grant(addr, permissions)
 	if err != nil {
-		log.Printf("[ERREUR SUR L'ADRESSE]")
+		failf("Grant denied : \n %s \n", err)
 	}
+
+	ok("Accréditation accordées avec succès.")
+
+	_, err = client.IssueMore(addr[0], name, 10)
+	if err != nil {
+		fail("[ERREUR SUR L'ADRESSE]")
+	}
+
+	ok("Pourboire versé avec succès.")
+
+	path := fmt.Sprintf("./%s.png", addr[0])
+	err = qrcode.WriteColorFile(addr[0], qrcode.Medium, 256, color.Black, color.White, path)
+	if err != nil {
+		fail("Failed to save QR code")
+	}
+
+	okf("QR Code %s généré avec succès.\n", path)
 
 	return true
 }
 
-//RevokePermissions : Revoke the permissions for an address, (quite the same as deleting)
-func RevokePermissions(client *multichain.Client) bool {
+// RevokePermissions : Revoke the permissions for an address, (quite the same as deleting)
+func RevokePermissions() bool {
 	c := exec.Command("clear") // Efface l'écran
 	c.Stdout = os.Stdout
 	c.Run()
 	permissions := []string{"connect", "send", "receive", "mine"}
 	var res int64
 
-	tableau := GetGlobalAdresses(client) // Get Addresses
+	tableau := GetGlobalAdresses() // Get Addresses
 	/*fmt.Printf("______________________________\nLes adresses disponibles sont: \n")
 	for i := range tableau {
 		fmt.Printf("Adresse %d: %s \n", i, tableau[i])
@@ -287,14 +323,14 @@ func RevokePermissions(client *multichain.Client) bool {
 }
 
 //IssueMoney is a function that allows to credit some money to an user choosen address.
-func IssueMoney(client *multichain.Client, asset string) bool {
+func IssueMoney(asset string) bool {
 	c := exec.Command("clear") // Efface l'écran
 	c.Stdout = os.Stdout
 	c.Run()
 	var res int
 	var qt float64
 
-	tableau := GetGlobalAdresses(client) // Get Addresses
+	tableau := GetGlobalAdresses() // Get Addresses
 	fmt.Printf("______________________________\nLes adresses disponibles sont: \n")
 	for i := range tableau {
 		fmt.Printf("Adresse %d: %s \n", i, tableau[i])
@@ -323,7 +359,7 @@ func IssueMoney(client *multichain.Client, asset string) bool {
 }
 
 // GetGlobalAdresses is a function that returns an array of the available adresses
-func GetGlobalAdresses(client *multichain.Client) []string {
+func GetGlobalAdresses() []string {
 	c := exec.Command("clear") // Efface l'écran
 	c.Stdout = os.Stdout
 	c.Run()
