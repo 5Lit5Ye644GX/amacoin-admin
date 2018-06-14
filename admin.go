@@ -38,34 +38,37 @@ func boom() {
 
 func main() {
 
-	user, erra := user.Current()
-	if erra != nil {
-		panic(erra)
+	user, err := user.Current()
+	if err != nil {
+		panic(err)
 	}
-	path := user.HomeDir + "\\AppData\\Roaming\\Multichain"
-	err12 := os.Chdir(path)
-	if err12 != nil {
-		fmt.Println(err12)
-	}
-	cmd := exec.Command(".\\multichaind.exe", "Amacoin")
-	err31 := cmd.Start()
-	if err31 != nil {
-		fmt.Printf("Est-ce que ça tourne ?: %s \n ", err31)
-	}
+
 	if runtime.GOOS == "windows" {
 		log.Println("[OK] Your OS is [Windows]")
+
+		path := user.HomeDir + "\\AppData\\Roaming\\Multichain"
+		err = os.Chdir(path)
+		if err != nil {
+			log.Println(err)
+		}
+		cmd := exec.Command(".\\multichaind.exe", "Amacoin")
+		err = cmd.Start()
+		if err != nil {
+			fmt.Printf("Est-ce que ça tourne ?: %s \n ", err)
+		}
+
 	} else if runtime.GOOS == "linux" {
 		log.Println("[OK] Your OS is [Linux]")
 	}
 
 	boom()
 
-	duration := time.Duration(3) * time.Second
-	time.Sleep(duration) // little sleep  (3s) before connecting
+	// little sleep (3s) before connecting
+	time.Sleep(time.Duration(3) * time.Second)
 	////////////////////////// Démarrage de multichaind.exe Amacoin@IP:Port
-	////////////////////////// Pour se connecter au noeud Papa (pas besoin de Ip:Port si on est le noeud papa)
+	////////////////////////// Pour se connecter au noeud Papa (pas besoin de IP:Port si on est le noeud papa)
 
-	// Connexion to the holly blockchain hosting the noble écu
+	// Connexion to the holy blockchain hosting the noble écu
 	// We need a central node, used as a DNS seed
 	///////////////////////// FLAGS TO LAUNCH THE .EXE WITH OPTIONS ////////////////////////////
 	chain := flag.String("chain", "Amacoin", "is the name of the chain")
@@ -80,7 +83,7 @@ func main() {
 	*password = logs[1]
 	*port = GetPort(*chain)
 
-	////////////////////////
+	///////////////////////// TACTICAL CONNECTION TO THE HOLY BLOCKCHAIN /////////////////////////
 	client := multichain.NewClient(
 		*chain,
 		*username,
@@ -91,11 +94,11 @@ func main() {
 		*port,
 	)
 
-	///////////////////////////////// Asset Definition ////////////////////////////////
+	//////////////////////// Asset Definition /////////////////////////
 	RewardName := *chain  // Nom de notre monnaie.
 	InitialReward := 10.0 // Récompense d'entrée.
 	cents := 0.01         // Unité monétaire divisionnaire de l'écu.
-	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////
 
 	obj, err := client.GetAddresses(false) // Get the addresses in our wallet.
 	if err != nil {                        // Impossible to reach our wallet, please ask for lost objects.
@@ -107,18 +110,18 @@ func main() {
 	obj, err = client.Issue(true, address, RewardName, InitialReward, cents) // If it's the first time the node is launched, we have to create the asset for reward
 
 	if err != nil { // Asset already existing
-		log.Printf("[OK] Asset %s seemsto be already existing", RewardName)
+		log.Printf("[OK] Asset %s seems to be already existing\n", RewardName)
 	} else { // Creation of the non existing asset
 		obj, err = client.IssueMore(address, RewardName, 10) // Noob award ?
 		if err != nil {
-			log.Printf("[ERREUR SUR L'ADRESSE]")
+			log.Println("[ERREUR SUR L'ADRESSE]")
 		} else {
-			log.Printf("[OK] ON A RAJOUTE L'ARGENT") // Award granted
+			log.Println("[OK] ON A RAJOUTE L'ARGENT") // Award granted
 		}
-		log.Printf("[OK] Asset %s successfuly created", RewardName) // Graphical confirmation of the asset creation's success
+		log.Printf("[OK] Asset %s successfuly created\n", RewardName) // Graphical confirmation of the asset creation's success
 	}
 	// End of the initialization of da wallet.
-	log.Printf("[OK] On a bien démarré notre noeud. La bourse est disponible à l'adresse : %s", address)
+	log.Printf("[OK] On a bien démarré notre noeud. La bourse est disponible à l'adresse : %s\n", address)
 
 	//////////////////////////////////////////////////////////
 	address1 := Identification(client)
