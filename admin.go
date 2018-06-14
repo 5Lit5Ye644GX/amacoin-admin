@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"os/user"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -212,7 +213,8 @@ func ChoiceAdmin(asset string) error {
 +-----------------------------------------------------+
 | 1) Générer une nouvelle adresse                     | 
 | 2) Verser un pourboire                              |
-| 3) Supprimer les permissions d'une adresse          | 
+| 3) Exploration                                      |
+| 4) Supprimer les permissions d'une adresse          | 
 | F) Pay respect                                      |
 | 0) Sortie (Emergency Escape Exit)                   |
 +-----------------------------------------------------+ 
@@ -230,7 +232,9 @@ func ChoiceAdmin(asset string) error {
 		if err != true {
 			panic("Error in IssueMoney")
 		}
-	case 3: // revoke Permission
+	case 3: // Explorator
+		//not implemented
+	case 4: // revoke Permission
 		err := RevokePermissions()
 		if err != true {
 			panic("Error in IssueMoney")
@@ -281,13 +285,40 @@ func CreateAddress(name string) bool {
 
 	ok("Pourboire versé avec succès.")
 
-	path := fmt.Sprintf("./%s.png", addr[0])
+	// Save the Address in a QR Code
+	ex, err := os.Executable()
+	if err != nil {
+		panic(err)
+	}
+	exPath := filepath.Dir(ex) + string(os.PathSeparator)
+	addressPath := exPath + "address"
+	if _, err := os.Stat(addressPath); os.IsNotExist(err) {
+		os.MkdirAll(addressPath, 0700)
+	}
+
+	path := addressPath + string(os.PathSeparator) + addr[0] + ".png"
 	err = qrcode.WriteColorFile(addr[0], qrcode.Medium, 256, color.Black, color.White, path)
 	if err != nil {
 		fail("Failed to save QR code")
+	} else {
+		okf("QR Code %s généré avec succès.\n", path)
 	}
 
-	okf("QR Code %s généré avec succès.\n", path)
+	// Save the private key in a QR Code
+	privPath := exPath + "private"
+	if _, err := os.Stat(privPath); os.IsNotExist(err) {
+		os.MkdirAll(privPath, 0700)
+	}
+
+	// We need to dump priv key
+
+	path = privPath + string(os.PathSeparator) + addr[0] + ".png"
+	err = qrcode.WriteColorFile(addr[0], qrcode.Medium, 256, color.Black, color.White, path)
+	if err != nil {
+		fail("Failed to save QR code")
+	} else {
+		okf("QR Code %s généré avec succès.\n", path)
+	}
 
 	return true
 }
