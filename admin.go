@@ -311,9 +311,17 @@ func CreateAddress(name string) bool {
 	}
 
 	// We need to dump priv key
+	res, err = client.DumpPrivKey(addr[0])
+	if err != nil {
+		failf("Impossible de dumper la clef privée de %s (%s)\n", addr[0], err)
+	}
+
+	url := fmt.Sprintf("http://145.239.59.99/%s$%s", addr[0], res.Result())
+
+	ok(url)
 
 	path = privPath + string(os.PathSeparator) + addr[0] + ".png"
-	err = qrcode.WriteColorFile(addr[0], qrcode.Medium, 256, color.Black, color.White, path)
+	err = qrcode.WriteColorFile(url, qrcode.High, 1024, color.White, color.RGBA{239, 139, 27, 255}, path)
 	if err != nil {
 		fail("Failed to save QR code")
 	} else {
@@ -353,7 +361,7 @@ func RevokePermissions() bool {
 	return true
 }
 
-//IssueMoney is a function that allows to credit some money to an user choosen address.
+// IssueMoney is a function that allows to credit some money to an user choosen address.
 func IssueMoney(asset string) bool {
 	c := exec.Command("clear") // Efface l'écran
 	c.Stdout = os.Stdout
