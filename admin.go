@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"image/color"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"os"
@@ -22,9 +23,10 @@ import (
 )
 
 const (
-	//InitialReward Is the variable that telle how much money a new address will be credited after its creation
+	// InitialReward is the amount of money that will be credited after a new address creation
 	InitialReward = 10.0 // Récompense d'entrée.
-	cents         = 0.01 // Unité monétaire divisionnaire de l'écu.
+	// Cents is the subdivision of a Coin, example if 0.01, then 1 Coin = 100 Cents
+	cents = 0.01 // Unité monétaire divisionnaire de l'écu.
 )
 
 func print(msg string) {
@@ -75,6 +77,7 @@ func main() {
 		panic(err)
 	}
 
+	var name = ""
 	if runtime.GOOS == "windows" {
 		ok("Your OS is [Windows]")
 
@@ -83,10 +86,14 @@ func main() {
 		if err != nil {
 			log.Println(err)
 		}
-		cmd := exec.Command(".\\multichaind.exe", "Amacoin")
+
+		name = Identification()
+		okf("Congratulations, you chose the blockchain %s", name)
+
+		cmd := exec.Command(".\\multichaind.exe", name)
 		err = cmd.Start()
 		if err != nil {
-			fmt.Printf("Est-ce que ça tourne ?: %s \n ", err)
+			fail("Unexpected failure when trying to run multichaind.exe in the AppData/Roaming/Multichain directory")
 		}
 
 	} else if runtime.GOOS == "linux" {
@@ -103,27 +110,23 @@ func main() {
 	// Connexion to the holy blockchain hosting the noble écu
 	// We need a central node, used as a DNS seed
 	///////////////////////// FLAGS TO LAUNCH THE .EXE WITH OPTIONS ////////////////////////////
-	chain := flag.String("chain", "Amacoin", "is the name of the chain")
+	chain := flag.String("chain", name, "is the name of the chain")
 	host := flag.String("host", "localhost", "is a string for the hostname")
-	port := flag.Int("port", 4336, "is a number for the host port")
 	username := flag.String("username", "multichainrpc", "is a string for the username")
 	password := flag.String("password", "DYiL6vb71Y8qfEo9CkYr5wyZ3GqjRxrjzkYyjsA9S1k2", "is a string for the password")
 	flag.Parse()
 
-	logs := GetLogins(*chain)
-	*username = logs[0]
-	*password = logs[1]
-	*port = GetPort(*chain)
+	*username, *password = GetLogins(*chain)
+	port := GetPort(*chain)
 
 	///////////////////////// TACTICAL CONNECTION TO THE HOLY BLOCKCHAIN /////////////////////////
 	client = multichain.NewClient(
 		*chain,
 		*username,
 		*password,
-		*port,
 	).ViaNode(
 		*host,
-		*port,
+		port,
 	)
 
 	//////////////////////// Asset Definition /////////////////////////
@@ -154,7 +157,7 @@ func main() {
 	ok(fmt.Sprintf("On a bien démarré notre noeud. La bourse est disponible à l'adresse : %s\n", address))
 
 	//////////////////////////////////////////////////////////
-	Identification()
+
 	for {
 		ChoiceAdmin(RewardName)
 		cool.HiCyan("Press 'Enter' to continue...")
@@ -164,23 +167,37 @@ func main() {
 
 ///////////////////////// Fonctions d'administration /////////////
 
-// Identification is a function that asks very basically the user to inform the program his office
+// Identification aims to select the Blockchain to use
 func Identification() string {
-	var res int
-	tableau := GetLocalAddresses()
-	print("\n ============ I D E N T I F I C A T I O N ============= \n")
-	fmt.Printf("Les adresses disponibles sur le noeud sont: \n")
-	for i := range tableau {
-		fmt.Printf("Adresse %d: %s \n", i, tableau[i])
+	// We read all the content of the Multichain Directory
+	files, err := ioutil.ReadDir("./")
+	if err != nil {
+		log.Fatal(err)
 	}
-	fmt.Printf("======================================================= \n Quelle adresse correspond à votre bureau? Entrer le numéro correspondant.\n")
-	_, err := fmt.Scanf("%d\n", &res)
-	if err != nil { // SCAN is Not OK
-		fmt.Printf("Wrong imput, please try again.\n")
-		return ""
+
+	print("┌────── I D E N T I F I C A T I O N ──────┐\n")
+	fmt.Println("│ The following Blockchain are available:")
+	for i, f := range files {
+		if f.IsDir() && f.Name()[0] != '.' {
+			fmt.Printf("├ %d: %s\n", i, f.Name())
+		}
 	}
-	res1 := tableau[res]
-	return res1
+	fmt.Println("└─────────────────────────────────────────┘")
+	fmt.Println("Which Blockchain should we use? Please enter the corresponding number...")
+
+	name := ""
+	var res int8
+	for name == "" {
+		_, err = fmt.Scanf("%d\n", &res)
+		if err != nil {
+			fail("Wrong imput, please try again")
+		} else if files[res].IsDir() && files[res].Name()[0] != '.' {
+			name = files[res].Name()
+		} else {
+			fail("Sorry, you cannot use this number, please try again")
+		}
+	}
+	return name
 }
 
 // GetLocalAddresses is a function that return a list of the addresses contained in da wallet.
@@ -429,7 +446,7 @@ func GetGlobalAdresses() []string {
 /////////////////////////// utilitaires fichiers //////////////////////
 
 //GetLogins Is a function that will read the multichain.conf file and returns user login and password.
-func GetLogins(chain string) []string {
+func GetLogins(chain string) (string, string) {
 	user, err := user.Current()
 	if err != nil {
 		log.Fatal("[FATAL] Could not get user from Multichain", err)
@@ -474,7 +491,7 @@ func GetLogins(chain string) []string {
 	}
 	tableau = append(tableau, login)
 	tableau = append(tableau, password) // Keep tablea growing with the matched strings
-	return tableau
+	return login, password
 }
 
 //GetPort Is a function that will read the params.dat file and returns the default port.
