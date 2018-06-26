@@ -22,6 +22,7 @@ import (
 )
 
 const (
+	//InitialReward Is the variable that telle how much money a new address will be credited after its creation
 	InitialReward = 10.0 // Récompense d'entrée.
 	cents         = 0.01 // Unité monétaire divisionnaire de l'écu.
 )
