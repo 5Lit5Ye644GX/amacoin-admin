@@ -29,10 +29,24 @@ const (
 	cents = 0.01 // Unité monétaire divisionnaire de l'écu.
 )
 
-func print(msg string) {
+var banner = [6]string{
+	"		██████╗ ███████╗██╗   ██╗███████╗    ██╗   ██╗██╗   ██╗██╗  ████████╗\n",
+	"		██╔══██╗██╔════╝██║   ██║██╔════╝    ██║   ██║██║   ██║██║  ╚══██╔══╝\n",
+	"		██║  ██║█████╗  ██║   ██║███████╗    ██║   ██║██║   ██║██║     ██║\n",
+	"		██║  ██║██╔══╝  ██║   ██║╚════██║    ╚██╗ ██╔╝██║   ██║██║     ██║\n",
+	"		██████╔╝███████╗╚██████╔╝███████║     ╚████╔╝ ╚██████╔╝███████╗██║\n",
+	"		╚═════╝ ╚══════╝ ╚═════╝ ╚══════╝      ╚═══╝   ╚═════╝ ╚══════╝╚═╝\n",
+}
+
+func print(msg string, maxtime ...int) {
+	waiting := 20
+	if len(maxtime) > 0 {
+		waiting = maxtime[0]
+	}
+
 	runes := []rune(msg)
 	for _, c := range runes {
-		time.Sleep(time.Duration(rand.Intn(20)) * time.Millisecond)
+		time.Sleep(time.Duration(rand.Intn(waiting)) * time.Millisecond)
 		fmt.Printf("%c", c)
 	}
 }
@@ -57,15 +71,34 @@ func failf(format string, a ...interface{}) {
 	fmt.Printf(format, a)
 }
 
-func boom() {
-	print(`
-		██████╗ ███████╗██╗   ██╗███████╗    ██╗   ██╗██╗   ██╗██╗  ████████╗
-		██╔══██╗██╔════╝██║   ██║██╔════╝    ██║   ██║██║   ██║██║  ╚══██╔══╝
-		██║  ██║█████╗  ██║   ██║███████╗    ██║   ██║██║   ██║██║     ██║   
-		██║  ██║██╔══╝  ██║   ██║╚════██║    ╚██╗ ██╔╝██║   ██║██║     ██║   
-		██████╔╝███████╗╚██████╔╝███████║     ╚████╔╝ ╚██████╔╝███████╗██║   
-		╚═════╝ ╚══════╝ ╚═════╝ ╚══════╝      ╚═══╝   ╚═════╝ ╚══════╝╚═╝   `)
+func loading(chain, username, password string, port int) {
+	timer := 10
+	for i, s := range banner {
+		print(s, (i+1)*timer)
+		if connection(chain, username, password, port) != nil {
+			timer = 1
+		}
+	}
 	fmt.Println()
+}
+
+func connection(chain, username, password string, port int) error {
+	/////////////// TACTICAL CONNECTION TO THE HOLY BLOCKCHAIN /////////////////
+	client = multichain.NewClient(
+		chain,
+		username,
+		password,
+	).ViaLocal(
+		port,
+	)
+
+	_, err := client.GetInfo()
+	if err != nil {
+		// Impossible to reach our wallet, please ask for lost objects.
+		return err
+	} else {
+		return nil
+	}
 }
 
 var client *multichain.Client
@@ -88,7 +121,7 @@ func main() {
 		}
 
 		name = Identification()
-		okf("Congratulations, you chose the blockchain %s", name)
+		okf("Congratulations, you chose the blockchain %s\n", name)
 
 		cmd := exec.Command(".\\multichaind.exe", name)
 		err = cmd.Start()
@@ -100,34 +133,16 @@ func main() {
 		ok("Your OS is [Linux]")
 	}
 
-	boom()
-
-	// little sleep (3s) before connecting
-	time.Sleep(time.Duration(3) * time.Second)
-	////////////////////////// Démarrage de multichaind.exe Amacoin@IP:Port
-	////////////////////////// Pour se connecter au noeud Papa (pas besoin de IP:Port si on est le noeud papa)
-
-	// Connexion to the holy blockchain hosting the noble écu
-	// We need a central node, used as a DNS seed
 	///////////////////////// FLAGS TO LAUNCH THE .EXE WITH OPTIONS ////////////////////////////
 	chain := flag.String("chain", name, "is the name of the chain")
-	host := flag.String("host", "localhost", "is a string for the hostname")
-	username := flag.String("username", "multichainrpc", "is a string for the username")
-	password := flag.String("password", "DYiL6vb71Y8qfEo9CkYr5wyZ3GqjRxrjzkYyjsA9S1k2", "is a string for the password")
 	flag.Parse()
 
-	*username, *password = GetLogins(*chain)
+	username, password := GetLogins(*chain)
 	port := GetPort(*chain)
 
-	///////////////////////// TACTICAL CONNECTION TO THE HOLY BLOCKCHAIN /////////////////////////
-	client = multichain.NewClient(
-		*chain,
-		*username,
-		*password,
-	).ViaNode(
-		*host,
-		port,
-	)
+	okf("Connection to the Blockchain %s...\n", name)
+
+	loading(*chain, username, password, port)
 
 	//////////////////////// Asset Definition /////////////////////////
 	RewardName := *chain // Nom de notre monnaie.
@@ -135,7 +150,7 @@ func main() {
 
 	obj, err := client.GetAddresses(false) // Get the addresses in our wallet.
 	if err != nil {                        // Impossible to reach our wallet, please ask for lost objects.
-		log.Fatal("[FATAL] Could not get addresses from Multichain", err)
+		panic("[FATAL] Could not get addresses from Multichain")
 	}
 
 	addresses := obj.Result().([]interface{})                                // Different addresses stored on the node
