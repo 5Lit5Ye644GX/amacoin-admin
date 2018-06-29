@@ -7,7 +7,6 @@ import (
 	"image/color"
 	"io/ioutil"
 	"log"
-	"math/rand"
 	"os"
 	"os/exec"
 	"os/user"
@@ -15,7 +14,6 @@ import (
 	"regexp"
 	"runtime"
 	"strconv"
-	"time"
 
 	cool "github.com/fatih/color"
 	"github.com/flibustier/multichain-client"
@@ -28,48 +26,6 @@ const (
 	// Cents is the subdivision of a Coin, example if 0.01, then 1 Coin = 100 Cents
 	cents = 0.01 // Unité monétaire divisionnaire de l'écu.
 )
-
-var banner = [6]string{
-	"		██████╗ ███████╗██╗   ██╗███████╗    ██╗   ██╗██╗   ██╗██╗  ████████╗\n",
-	"		██╔══██╗██╔════╝██║   ██║██╔════╝    ██║   ██║██║   ██║██║  ╚══██╔══╝\n",
-	"		██║  ██║█████╗  ██║   ██║███████╗    ██║   ██║██║   ██║██║     ██║\n",
-	"		██║  ██║██╔══╝  ██║   ██║╚════██║    ╚██╗ ██╔╝██║   ██║██║     ██║\n",
-	"		██████╔╝███████╗╚██████╔╝███████║     ╚████╔╝ ╚██████╔╝███████╗██║\n",
-	"		╚═════╝ ╚══════╝ ╚═════╝ ╚══════╝      ╚═══╝   ╚═════╝ ╚══════╝╚═╝\n",
-}
-
-func print(msg string, maxtime ...int) {
-	waiting := 20
-	if len(maxtime) > 0 {
-		waiting = maxtime[0]
-	}
-
-	runes := []rune(msg)
-	for _, c := range runes {
-		time.Sleep(time.Duration(rand.Intn(waiting)) * time.Millisecond)
-		fmt.Printf("%c", c)
-	}
-}
-
-func ok(msg string) {
-	cool.New(cool.FgHiGreen).Printf("[OK] ")
-	fmt.Println(msg)
-}
-
-func okf(format string, a ...interface{}) {
-	cool.New(cool.FgHiGreen).Printf("[OK] ")
-	fmt.Printf(format, a)
-}
-
-func fail(msg string) {
-	cool.New(cool.FgHiRed).Printf("[ERROR] ")
-	fmt.Println(msg)
-}
-
-func failf(format string, a ...interface{}) {
-	cool.New(cool.FgHiRed).Printf("[ERROR] ")
-	fmt.Printf(format, a)
-}
 
 func loading(chain, username, password string, port int) {
 	timer := 10
@@ -110,7 +66,7 @@ func main() {
 		panic(err)
 	}
 
-	var name = ""
+	name := ""
 	if runtime.GOOS == "windows" {
 		ok("Your OS is [Windows]")
 
@@ -145,7 +101,7 @@ func main() {
 	loading(*chain, username, password, port)
 
 	//////////////////////// Asset Definition /////////////////////////
-	RewardName := *chain // Nom de notre monnaie.
+	RewardName := *chain // Name of the asset
 	///////////////////////////////////////////////////////////////////
 
 	obj, err := client.GetAddresses(false) // Get the addresses in our wallet.
@@ -162,7 +118,7 @@ func main() {
 	} else { // Creation of the non existing asset
 		obj, err = client.IssueMore(address, RewardName, 10) // Noob award ?
 		if err != nil {
-			fail("[ERREUR SUR L'ADRESSE]")
+			failf("[ERROR] Could not issue %s address\n", address)
 		} else {
 			log.Println("[OK] ON A RAJOUTE L'ARGENT") // Award granted
 		}
@@ -362,100 +318,6 @@ func CreateAddress(name string) bool {
 	}
 
 	return true
-}
-
-// RevokePermissions : Revoke the permissions for an address, (quite the same as deleting)
-func RevokePermissions() bool {
-	c := exec.Command("clear") // Efface l'écran
-	c.Stdout = os.Stdout
-	c.Run()
-	permissions := []string{"connect", "send", "receive", "mine"}
-	var res int64
-
-	tableau := GetGlobalAdresses() // Get Addresses
-	/*fmt.Printf("______________________________\nLes adresses disponibles sont: \n")
-	for i := range tableau {
-		fmt.Printf("Adresse %d: %s \n", i, tableau[i])
-	}*/
-	fmt.Printf("============================ \n Quelle adresse créditer? Entrer le numéro correspondant.\n")
-	_, err := fmt.Scanf("%d\n", &res)
-	if err != nil { // SCAN is Not OK
-		fmt.Printf("Wrong imput, please try again.\n")
-		return false
-	}
-	res1 := tableau[res]
-	resTr := make([]string, 0)
-	resTr = append(resTr, res1)
-	resp, erroer := client.Revoke(resTr, permissions)
-	if erroer != nil {
-		fmt.Printf("Revoke denied : \n %s \n", erroer)
-	}
-	fmt.Printf("Nouvelle adresse révoquée avec succès. \n %s \n ======================== \n", resp)
-	return true
-}
-
-// IssueMoney is a function that allows to credit some money to an user choosen address.
-func IssueMoney(asset string) bool {
-	c := exec.Command("clear") // Efface l'écran
-	c.Stdout = os.Stdout
-	c.Run()
-	var res int
-	var qt float64
-
-	tableau := GetGlobalAdresses() // Get Addresses
-	fmt.Printf("______________________________\nLes adresses disponibles sont: \n")
-	for i := range tableau {
-		fmt.Printf("Adresse %d: %s \n", i, tableau[i])
-	}
-	fmt.Printf("============================ \n Quelle adresse créditer? Entrer le numéro correspondant.\n")
-	_, err := fmt.Scanf("%d\n", &res)
-	if err != nil { // SCAN is Not OK
-		fmt.Printf("Wrong imput, please try again.\n")
-		return false
-	}
-	res1 := tableau[res]
-
-	fmt.Printf("Quelle quantité d'argent créer ?\n")
-	_, err2 := fmt.Scanf("%f\n", &qt)
-	if err2 != nil { // SCAN is Not OK
-		fmt.Printf("Wrong imput, please try again.\n Erreur:%s \n", err2)
-		return false
-	}
-
-	rei, err54 := client.IssueMore(res1, asset, qt)
-	if err54 != nil {
-		fmt.Printf("Impossible de créer la monnaie sur l'adresse choisie.\n %s \n", rei)
-		return false
-	}
-	return true
-}
-
-// GetGlobalAdresses is a function that returns an array of the available adresses
-func GetGlobalAdresses() []string {
-	c := exec.Command("clear") // Efface l'écran
-	c.Stdout = os.Stdout
-	c.Run()
-	tabret := make([]string, 0)
-	params := []interface{}{"receive"}
-	msg := client.Command( // It will do the manual command
-		"listpermissions", // listpermissions that returns the allowed to receive a transaction
-		params,            // Basically all the addresses of the network
-	)
-	coucou, erre := client.Post(msg)
-	if erre != nil {
-		fmt.Printf("Erreur cli post %s \n", erre)
-	}
-
-	for j := range coucou.Result().([]interface{}) { // Here we want to extract the addresses
-		fmt.Printf(" ===================== \n %d ) ", j) // From the structure in coucou
-		plop := coucou.Result().([]interface{})[j].(map[string]interface{})
-		plip := plop["address"].(string)
-		tabret = append(tabret, plip) // Adding the addresses
-		fmt.Printf("%s \n ==================== \n", tabret[j])
-	}
-	var input string
-	fmt.Scanln(&input)
-	return tabret
 }
 
 /////////////////////////// utilitaires fichiers //////////////////////
