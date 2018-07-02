@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"os"
+	"os/exec"
 	"time"
 
 	cool "github.com/fatih/color"
@@ -48,4 +50,11 @@ func fail(msg string) {
 func failf(format string, a ...interface{}) {
 	cool.New(cool.FgHiRed).Printf("[ERROR] ")
 	fmt.Printf(format, a)
+}
+
+// Clear screen
+func clear() {
+	c := exec.Command("clear")
+	c.Stdout = os.Stdout
+	c.Run()
 }

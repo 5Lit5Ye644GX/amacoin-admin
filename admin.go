@@ -31,8 +31,8 @@ func loading(chain, username, password string, port int) {
 	timer := 10
 	for i, s := range banner {
 		print(s, (i+1)*timer)
-		if connection(chain, username, password, port) != nil {
-			timer = 1
+		if timer > 3 && connection(chain, username, password, port) == nil {
+			timer = 3
 		}
 	}
 	fmt.Println()
@@ -49,12 +49,7 @@ func connection(chain, username, password string, port int) error {
 	)
 
 	_, err := client.GetInfo()
-	if err != nil {
-		// Impossible to reach our wallet, please ask for lost objects.
-		return err
-	} else {
-		return nil
-	}
+	return err
 }
 
 var client *multichain.Client
@@ -171,42 +166,51 @@ func Identification() string {
 	return name
 }
 
-// GetLocalAddresses is a function that return a list of the addresses contained in da wallet.
-func GetLocalAddresses() []string {
-	obj, err := client.GetAddresses(false) // Get the addresses in our wallet.
-	if err != nil {                        // Impossible to reach our wallet, please ask for lost objects.
-		log.Fatal("[FATAL] Could not get addresses from Multichain", err)
+func explore() {
+	clear()
+	addresses := GetLocalAddresses()
+	fmt.Println("┌──────────────────────────────────────┬────────┬────────────────────────────────────────────────────────┐")
+	fmt.Printf("│%-38s│%-8s│%-56s│\n", " Address", " Amount", " Private Key")
+	fmt.Println("├──────────────────────────────────────┼────────┼────────────────────────────────────────────────────────┤")
+	for _, address := range addresses {
+		priv, _ := client.DumpPrivKey(address)
+		amount := GetBalance(address)
+		fmt.Printf("│")
+		cool.New(cool.FgHiCyan).Printf("%-38s", address)
+		fmt.Printf("│")
+		amountColor := cool.FgHiRed
+		if amount > 0 {
+			amountColor = cool.FgHiGreen
+		}
+		cool.New(amountColor).Printf("%-8.2f", amount)
+		fmt.Printf("│")
+		cool.New(cool.FgHiMagenta).Printf("%-56s", priv.Result())
+		fmt.Printf("│\n")
 	}
-	addresses := obj.Result().([]interface{}) // Different addresses stored on the node
-	adresses := make([]string, 0)
-	for i := range addresses {
-		adresses = append(adresses, addresses[i].(string))
-	}
-	return adresses
+	fmt.Println("└──────────────────────────────────────┴────────┴────────────────────────────────────────────────────────┘")
 }
 
 // ChoiceAdmin is a function that open the Menu for admin functions.
 func ChoiceAdmin(asset string) error {
-	c := exec.Command("clear") // Efface l'écran
-	c.Stdout = os.Stdout
-	c.Run()
 	var res1 int
-	print("	 /'\\_/`\\                          	\n")
-	print("	/\\      \\     __    ___   __  __  	\n")
-	print("	\\ \\ \\__\\ \\  /'__`\\/' _ `\\/\\ \\/\\ \\ 	\n")
-	print("	 \\ \\ \\_/\\ \\/\\  __//\\ \\/\\ \\ \\ \\_\\ \\	\n")
-	print("	  \\ \\_\\\\ \\_\\ \\____\\ \\_\\ \\_\\ \\____/	\n")
-	print("	   \\/_/ \\/_/\\/____/\\/_/\\/_/\\/___/ \n")
+
+	clear()
+	print("	 /'\\_/`\\\n")
+	print("	/\\      \\     __    ___   __  __\n")
+	print("	\\ \\ \\__\\ \\  /'__`\\/' _ `\\/\\ \\/\\ \\\n")
+	print("	 \\ \\ \\_/\\ \\/\\  __//\\ \\/\\ \\ \\ \\_\\ \\\n")
+	print("	  \\ \\_\\\\ \\_\\ \\____\\ \\_\\ \\_\\ \\____/\n")
+	print("	   \\/_/ \\/_/\\/____/\\/_/\\/_/\\/___/\n")
 
 	fmt.Printf(`
-+-----------------------------------------------------+
-| 1) Générer une nouvelle adresse                     | 
-| 2) Verser un pourboire                              |
-| 3) Exploration                                      |
-| 4) Supprimer les permissions d'une adresse          | 
-| F) Pay respect                                      |
-| 0) Sortie (Emergency Escape Exit)                   |
-+-----------------------------------------------------+ 
+┌─────────────────────────────────────────────────────┐
+│ 1) Générer une nouvelle adresse                     │ 
+│ 2) Verser un pourboire                              │
+│ 3) Exploration                                      │
+│ 4) Supprimer les permissions d'une adresse          │ 
+│ F) Pay respect                                      │
+│ 0) Sortie (Emergency Escape Exit)                   │
+└─────────────────────────────────────────────────────┘ 
 `)
 
 	_, err := fmt.Scanf("%d\n", &res1)
@@ -223,6 +227,7 @@ func ChoiceAdmin(asset string) error {
 		}
 	case 3: // Explorator
 		//not implemented
+		explore()
 	case 4: // revoke Permission
 		err := RevokePermissions()
 		if err != true {
@@ -246,9 +251,7 @@ func ChoiceAdmin(asset string) error {
 
 // CreateAddress is a function that creates a new address within the wallet and grant them with the basic permissions
 func CreateAddress(name string) bool {
-	c := exec.Command("clear") // Efface l'écran
-	c.Stdout = os.Stdout
-	c.Run()
+	clear()
 	res, err := client.GetNewAddress()
 	if err != nil {
 		failf("Impossible de créer la nouvelle adresse.\n %s \n", err)

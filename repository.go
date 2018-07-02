@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 )
@@ -38,9 +39,7 @@ func RevokePermissions() bool {
 
 // IssueMoney is a function that allows to credit some money to an user choosen address.
 func IssueMoney(asset string) bool {
-	c := exec.Command("clear") // Efface l'écran
-	c.Stdout = os.Stdout
-	c.Run()
+	clear()
 	var res int
 	var qt float64
 
@@ -72,11 +71,34 @@ func IssueMoney(asset string) bool {
 	return true
 }
 
+// GetBalance returns the asset quantity for address
+func GetBalance(address string) float64 {
+	res, err := client.GetAddressBalances(address)
+	if err == nil {
+		if len(res.Result().([]interface{})) > 0 {
+			return res.Result().([]interface{})[0].(map[string]interface{})["qty"].(float64)
+		}
+	}
+	return 0
+}
+
+// GetLocalAddresses is a function that return a list of the addresses contained in da wallet.
+func GetLocalAddresses() []string {
+	obj, err := client.GetAddresses(false) // Get the addresses in our wallet.
+	if err != nil {                        // Impossible to reach our wallet, please ask for lost objects.
+		log.Fatal("[FATAL] Could not get addresses from Multichain", err)
+	}
+	addresses := obj.Result().([]interface{}) // Different addresses stored on the node
+	adresses := make([]string, 0)
+	for i := range addresses {
+		adresses = append(adresses, addresses[i].(string))
+	}
+	return adresses
+}
+
 // GetGlobalAdresses is a function that returns an array of the available adresses
 func GetGlobalAdresses() []string {
-	c := exec.Command("clear") // Efface l'écran
-	c.Stdout = os.Stdout
-	c.Run()
+	clear()
 
 	res, err := client.ListPermissions([]string{"receive"}, []string{}, false)
 	if err != nil {
