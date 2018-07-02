@@ -5,6 +5,8 @@ import (
 	"log"
 	"os"
 	"os/exec"
+
+	cool "github.com/fatih/color"
 )
 
 // RevokePermissions : Revoke the permissions for an address, (quite the same as deleting)
@@ -38,37 +40,44 @@ func RevokePermissions() bool {
 }
 
 // IssueMoney is a function that allows to credit some money to an user choosen address.
-func IssueMoney(asset string) bool {
+func IssueMoney(assetName string) {
 	clear()
 	var res int
 	var qt float64
 
-	tableau := GetGlobalAdresses() // Get Addresses
-	fmt.Printf("______________________________\nLes adresses disponibles sont: \n")
-	for i := range tableau {
-		fmt.Printf("Adresse %d: %s \n", i, tableau[i])
+	addresses := GetGlobalAdresses() // Get Addresses
+
+	fmt.Println("┌───┬──────────────────────────────────────┐")
+	fmt.Printf("│%-3s│%-38s│\n", "No.", " Available addresses")
+	fmt.Println("├───┼──────────────────────────────────────┤")
+	for i, address := range addresses {
+		fmt.Printf("│")
+		cool.New(cool.FgHiGreen).Printf("%-3d", i)
+		fmt.Printf("│")
+		cool.New(cool.FgHiCyan).Printf("%-38s", address)
+		fmt.Printf("│\n")
 	}
-	fmt.Printf("============================ \n Quelle adresse créditer? Entrer le numéro correspondant.\n")
+	fmt.Println("└───┴──────────────────────────────────────┘")
+
+	fmt.Printf("Which address do you want to issue? Please input the corresponding number...\n")
 	_, err := fmt.Scanf("%d\n", &res)
 	if err != nil { // SCAN is Not OK
-		fmt.Printf("Wrong imput, please try again.\n")
-		return false
+		failf("Wrong imput, please try again.\n")
 	}
-	res1 := tableau[res]
+	res1 := addresses[res]
 
-	fmt.Printf("Quelle quantité d'argent créer ?\n")
-	_, err2 := fmt.Scanf("%f\n", &qt)
-	if err2 != nil { // SCAN is Not OK
-		fmt.Printf("Wrong imput, please try again.\n Erreur:%s \n", err2)
-		return false
+	fmt.Printf("How much do you want to issue?\n")
+	_, err = fmt.Scanf("%f\n", &qt)
+	if err != nil { // SCAN is Not OK
+		failf("Wrong imput, please try again.\n Erreur:%s \n", err)
 	}
 
-	rei, err54 := client.IssueMore(res1, asset, qt)
-	if err54 != nil {
-		fmt.Printf("Impossible de créer la monnaie sur l'adresse choisie.\n %s \n", rei)
-		return false
+	_, err = client.IssueMore(res1, assetName, qt)
+	if err != nil {
+		failf("Cannot issue more asset on the chosen address.\n %s \n", err)
 	}
-	return true
+
+	ok("The address was successfuly credited!")
 }
 
 // GetBalance returns the asset quantity for address
@@ -98,23 +107,18 @@ func GetLocalAddresses() []string {
 
 // GetGlobalAdresses is a function that returns an array of the available adresses
 func GetGlobalAdresses() []string {
-	clear()
 
 	res, err := client.ListPermissions([]string{"receive"}, []string{}, false)
 	if err != nil {
-		fmt.Printf("Erreur cli post %s \n", err)
+		fmt.Printf("Cannot read addresses %s \n", err)
 	}
 
-	tabret := make([]string, 0)
+	addresses := make([]string, 0)
 
-	for j := range res.Result().([]interface{}) { // Here we want to extract the addresses
-		fmt.Printf(" ===================== \n %d ) ", j) // From the structure in coucou
-		plop := res.Result().([]interface{})[j].(map[string]interface{})
-		plip := plop["address"].(string)
-		tabret = append(tabret, plip) // Adding the addresses
-		fmt.Printf("%s \n ==================== \n", tabret[j])
+	for _, obj := range res.Result().([]interface{}) { // Here we want to extract the addresses
+		address := obj.(map[string]interface{})["address"].(string)
+		addresses = append(addresses, address)
 	}
-	var input string
-	fmt.Scanln(&input)
-	return tabret
+
+	return addresses
 }

@@ -20,7 +20,7 @@ var banner = [6]string{
 }
 
 func print(msg string, maxtime ...int) {
-	waiting := 20
+	waiting := 15
 	if len(maxtime) > 0 {
 		waiting = maxtime[0]
 	}

@@ -28,17 +28,29 @@ const (
 )
 
 func loading(chain, username, password string, port int) {
+	ready := make(chan bool)
 	timer := 10
+	go connection(chain, username, password, port, ready)
 	for i, s := range banner {
-		print(s, (i+1)*timer)
-		if timer > 3 && connection(chain, username, password, port) == nil {
-			timer = 3
+		// Check if connection is ok
+		select {
+		// Something happened in the connection
+		case c := <-ready:
+			// It seems to be ok
+			if c {
+				timer = 3
+			} else {
+				// We got a problem so let's retry
+				go connection(chain, username, password, port, ready)
+			}
+		default:
 		}
+		print(s, (i+1)*timer)
 	}
 	fmt.Println()
 }
 
-func connection(chain, username, password string, port int) error {
+func connection(chain, username, password string, port int, ok chan bool) {
 	/////////////// TACTICAL CONNECTION TO THE HOLY BLOCKCHAIN /////////////////
 	client = multichain.NewClient(
 		chain,
@@ -49,7 +61,7 @@ func connection(chain, username, password string, port int) error {
 	)
 
 	_, err := client.GetInfo()
-	return err
+	ok <- (err == nil)
 }
 
 var client *multichain.Client
@@ -125,7 +137,7 @@ func main() {
 	//////////////////////////////////////////////////////////
 
 	for {
-		ChoiceAdmin(RewardName)
+		menu(RewardName)
 		cool.HiCyan("Press 'Enter' to continue...")
 		bufio.NewReader(os.Stdin).ReadBytes('\n')
 	}
@@ -142,10 +154,14 @@ func Identification() string {
 	}
 
 	print("┌────── I D E N T I F I C A T I O N ──────┐\n")
-	fmt.Println("│ The following Blockchain are available:")
+	fmt.Println("│ The following Blockchain are available: │")
 	for i, f := range files {
 		if f.IsDir() && f.Name()[0] != '.' {
-			fmt.Printf("├ %d: %s\n", i, f.Name())
+			fmt.Printf("├ ")
+			cool.New(cool.FgHiGreen).Printf("%-2d", i)
+			fmt.Printf(": ")
+			cool.New(cool.FgHiCyan).Printf("%-36s", f.Name())
+			fmt.Printf("│\n")
 		}
 	}
 	fmt.Println("└─────────────────────────────────────────┘")
@@ -190,8 +206,8 @@ func explore() {
 	fmt.Println("└──────────────────────────────────────┴────────┴────────────────────────────────────────────────────────┘")
 }
 
-// ChoiceAdmin is a function that open the Menu for admin functions.
-func ChoiceAdmin(asset string) error {
+// menu is a function that open the Menu for admin functions.
+func menu(asset string) error {
 	var res1 int
 
 	clear()
@@ -204,30 +220,29 @@ func ChoiceAdmin(asset string) error {
 
 	fmt.Printf(`
 ┌─────────────────────────────────────────────────────┐
-│ 1) Générer une nouvelle adresse                     │ 
-│ 2) Verser un pourboire                              │
-│ 3) Exploration                                      │
-│ 4) Supprimer les permissions d'une adresse          │ 
+│ 1) Explore                                          │ 
+│ 2) Generate a new address                           │
+│ 3) Issue more asset to an address                   │
+│ 4) Delete address' permissions                      │ 
 │ F) Pay respect                                      │
-│ 0) Sortie (Emergency Escape Exit)                   │
+│ `)
+	cool.New(cool.FgHiRed).Printf("0) Ragequit")
+
+	fmt.Printf(`                                         │
 └─────────────────────────────────────────────────────┘ 
 `)
 
 	_, err := fmt.Scanf("%d\n", &res1)
 	switch res1 {
-	case 1: // Create a new address
+	case 1:
+		explore()
+	case 2: // Create a new address
 		err := CreateAddress(asset)
 		if err != true {
 			panic("Error in CreateAddress")
 		}
-	case 2: // Issue asset
-		err := IssueMoney(asset)
-		if err != true {
-			panic("Error in IssueMoney")
-		}
-	case 3: // Explorator
-		//not implemented
-		explore()
+	case 3: // Issue asset
+		IssueMoney(asset)
 	case 4: // revoke Permission
 		err := RevokePermissions()
 		if err != true {
@@ -240,7 +255,7 @@ func ChoiceAdmin(asset string) error {
 	default:
 		fmt.Println("Not an option")
 	}
-	//fmt.Printf("J'ai rentré %d, il y a erreur : %s \n", res1, err)
+
 	if err != nil { // SCAN is Not OK
 		cool.Red("Wrong imput, please try again.\n")
 		return err
