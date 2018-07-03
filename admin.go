@@ -185,9 +185,9 @@ func Identification() string {
 func explore() {
 	clear()
 	addresses := GetLocalAddresses()
-	fmt.Println("┌──────────────────────────────────────┬────────┬────────────────────────────────────────────────────────┐")
-	fmt.Printf("│%-38s│%-8s│%-56s│\n", " Address", " Amount", " Private Key")
-	fmt.Println("├──────────────────────────────────────┼────────┼────────────────────────────────────────────────────────┤")
+	fmt.Println("┌──────────────────────────────────────┬────────────────────┬────────────────────────────────────────────────────────┐")
+	fmt.Printf("│%-38s│%-20s│%-56s│\n", " Address", " Amount", " Private Key")
+	fmt.Println("├──────────────────────────────────────┼────────────────────┼────────────────────────────────────────────────────────┤")
 	for _, address := range addresses {
 		priv, _ := client.DumpPrivKey(address)
 		amount := GetBalance(address)
@@ -198,12 +198,12 @@ func explore() {
 		if amount > 0 {
 			amountColor = cool.FgHiGreen
 		}
-		cool.New(amountColor).Printf("%-8.2f", amount)
+		cool.New(amountColor).Printf("%-20.2f", amount)
 		fmt.Printf("│")
 		cool.New(cool.FgHiMagenta).Printf("%-56s", priv.Result())
 		fmt.Printf("│\n")
 	}
-	fmt.Println("└──────────────────────────────────────┴────────┴────────────────────────────────────────────────────────┘")
+	fmt.Println("└──────────────────────────────────────┴────────────────────┴────────────────────────────────────────────────────────┘")
 }
 
 // menu is a function that open the Menu for admin functions.
